@@ -1,44 +1,65 @@
 const mongoose = require("mongoose");
 const cloudinary = require("../config/cloudinary");
 const Assignment = require("../models/Assignment");
-const User = require("../models/User");
-const uploadAssignment = require("../middleware/upload");
 const asyncHandler = require("../utils/asyncHandler");
 const AppError = require("../utils/AppError");
 
+module.exports.assignmentpost = asyncHandler(async (req, res) => {
+    const { title, instructions, dueDate, totalMarks } = req.body;
 
-module.exports.assignmentpost =  asyncHandler(async (req, res) => {
-        const { title, instructions, dueDate, totalMarks } = req.body;
+    const assignmentData = {
+        course: req.course._id,
+        createdBy: req.user.id,
+        title,
+        instructions,
+        dueDate: dueDate || null,
+        totalMarks
+    };
 
-        const assignmentData = {
-            course: req.course._id,
-            createdBy: req.user.id,
-            title,
-            instructions,
-            dueDate: dueDate || null,
-            totalMarks,
+    if (req.uploadedFile) {
+        assignmentData.attachment = {
+            publicId: req.uploadedFile.publicId,
+            url: req.uploadedFile.url,
+            originalName: req.uploadedFile.originalName,
+            mimeType: req.uploadedFile.mimeType,
+            size: req.uploadedFile.size
         };
+    }
 
-        if (req.uploadedFile) {
-            assignmentData.attachment = {
-                publicId: req.uploadedFile.publicId,
-                url: req.uploadedFile.url,
-                originalName: req.uploadedFile.originalName,
-                mimeType: req.uploadedFile.mimeType,
-                size: req.uploadedFile.size,
-            };
+    let assignment;
+
+    try {
+        assignment = await Assignment.create(assignmentData);
+    } catch (error) {
+
+        // Clean up uploaded file if database creation fails
+        if (req.uploadedFile?.publicId) {
+            try {
+                await cloudinary.uploader.destroy(
+                    req.uploadedFile.publicId,
+                    {
+                        resource_type: req.uploadedFile.resourceType
+                    }
+                );
+            } catch (cleanupError) {
+                console.error(
+                    "Cloudinary cleanup failed:",
+                    cleanupError.message
+                );
+            }
         }
 
-        const assignment = await Assignment.create(assignmentData);
-        await assignment.populate("createdBy", "name email");
+        throw error;
+    }
 
-        res.status(201).json({
-            success: true,
-            message: "Assignment created successfully",
-            assignment,
-        });
-    })
+    await assignment.populate("createdBy", "name email");
 
+    res.status(201).json({
+        success: true,
+        message: "Assignment created successfully",
+        assignment
+    });
+});
 
 
 module.exports.assignmentget = asyncHandler(async (req, res) => {    const { courseId } = req.params;
@@ -109,39 +130,46 @@ module.exports.assignmentUpdate =  asyncHandler(async (req, res) => {
     })
 
 module.exports.assignmentdelete = asyncHandler(async (req, res) => {
-        const { courseId, assignmentId } = req.params;
+    const { courseId, assignmentId } = req.params;
 
-        if (!mongoose.isValidObjectId(assignmentId)) {
-            throw new AppError("Invalid assignment ID format", 400);
+    const assignment = await Assignment.findOne({
+        _id: assignmentId,
+        course: courseId
+    });
+
+    if (!assignment) {
+        throw new AppError("Assignment not found", 404);
+    }
+
+    // Delete database record first
+    await Assignment.findOneAndDelete({
+        _id: assignmentId,
+        course: courseId
+    });
+
+    // Clean up Cloudinary attachment afterward
+    if (assignment.attachment?.publicId) {
+        try {
+            const isImage =
+                assignment.attachment.mimeType?.startsWith("image/");
+
+            await cloudinary.uploader.destroy(
+                assignment.attachment.publicId,
+                {
+                    resource_type: isImage ? "image" : "raw"
+                }
+            );
+
+        } catch (error) {
+            console.error(
+                "Cloudinary deletion failed:",
+                error.message
+            );
         }
+    }
 
-        const assignment = await Assignment.findOne({
-            _id: assignmentId,
-            course: courseId,
-        });
-
-        if (!assignment) {
-            throw new AppError("Assignment not found", 404);
-        }
-
-        // Clean up Cloudinary file if exists
-        if (assignment.attachment?.publicId) {
-            try {
-                const isImage = assignment.attachment.mimeType?.startsWith("image/");
-                await cloudinary.uploader.destroy(assignment.attachment.publicId, {
-                    resource_type: isImage ? "image" : "raw",
-                });
-            } catch (err) {
-                console.error("Failed to delete Cloudinary asset:", err.message);
-            }
-        }
-
-        await Assignment.findByIdAndDelete(assignmentId);
-
-        res.status(200).json({
-            success: true,
-            message: "Assignment deleted successfully",
-        });
-    })
-
-
+    res.status(200).json({
+        success: true,
+        message: "Assignment deleted successfully"
+    });
+});

@@ -52,20 +52,7 @@ const errorHandler = (err, req, res, next) => {
     res.status(statusCode).json(response);
 };
 
-// Reusable MongoDB ObjectId validation middleware
-const validateObjectId = (paramName) => {
-    return (req, res, next) => {
-        const id = req.params[paramName];
-        if (!mongoose.isObjectIdOrHexString(id)) {
-            return next(
-                new AppError(`Invalid ${paramName}`, 400)
-            );
-        }
 
-        next();
-    };
-};
 
 module.exports = errorHandler;
 module.exports.errorHandler = errorHandler;
-module.exports.validateObjectId = validateObjectId;

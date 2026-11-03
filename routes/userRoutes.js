@@ -31,7 +31,7 @@ router.post("/refresh",userController.refreshToken);
  router.post("/logout", userController.deleteUser);
 
 // POST /api/users/logout-all
-router.post("/logout-all", authMiddleware, userController.deleteUser);
+router.post("/logout-all", authMiddleware, userController.deleteAll);
 
 // PROFILE ROUTES
 // GET /api/users/me

@@ -364,66 +364,44 @@ const uploadToCloudinary = (req, next) => {
 // 7. MAIN UPLOAD MIDDLEWARE
 // ==========================================
 
-const uploadAssignment = (req, res, next) => {
+// ==========================================
+// 7. RECEIVE AND VALIDATE FILE
+// ==========================================
 
+const receiveAssignmentFile = (req, res, next) => {
     receiveFile(req, res, (err) => {
 
-        // ----------------------------------
-        // Multer Error Handling
-        // ----------------------------------
-
         if (err) {
-
             if (err instanceof multer.MulterError) {
 
                 if (err.code === "LIMIT_FILE_SIZE") {
-
                     return next(
-                        new AppError(
-                            "File size cannot exceed 5 MB.",
-                            400
-                        )
+                        new AppError("File size cannot exceed 5 MB.", 400)
                     );
                 }
 
                 if (err.code === "LIMIT_FILE_COUNT") {
-
                     return next(
-                        new AppError(
-                            "Only one attachment is allowed.",
-                            400
-                        )
+                        new AppError("Only one attachment is allowed.", 400)
                     );
                 }
 
-                return next(
-                    new AppError(err.message, 400)
-                );
+                return next(new AppError(err.message, 400));
             }
 
             return next(err);
         }
 
-
-        // ----------------------------------
-        // Attachment Is Optional
-        // ----------------------------------
-
+        // Attachment is optional
         if (!req.file) {
             return next();
         }
 
-
-        // ----------------------------------
-        // Verify Actual File Contents
-        // ----------------------------------
-
+        // Verify actual file contents
         verifyFileSignature(req.file)
-
             .then((isValid) => {
 
                 if (!isValid) {
-
                     return next(
                         new AppError(
                             "File content does not match the selected file type.",
@@ -432,18 +410,28 @@ const uploadAssignment = (req, res, next) => {
                     );
                 }
 
-
-                // ----------------------------------
-                // Upload Only After Verification
-                // ----------------------------------
-
-                uploadToCloudinary(req, next);
-
+                next();
             })
-
             .catch(next);
     });
 };
 
 
-module.exports = uploadAssignment;
+// ==========================================
+// 8. UPLOAD VALIDATED FILE TO CLOUDINARY
+// ==========================================
+
+const uploadAssignmentToCloudinary = (req, res, next) => {
+
+    if (!req.file) {
+        return next();
+    }
+
+    uploadToCloudinary(req, next);
+};
+
+
+module.exports = {
+    receiveAssignmentFile,
+    uploadAssignmentToCloudinary,
+};

@@ -13,9 +13,7 @@ const router = express.Router();
 
 // CREATE ANNOUNCEMENT
 router.post(
-    "/course/:courseId",
-    authMiddleware,
-    asyncHandler(async (req, res) => {
+    "/course/:courseId",  authMiddleware,  asyncHandler(async (req, res) => {
         const { courseId } = req.params;
         const { content } = req.body;
 
@@ -25,11 +23,7 @@ router.post(
         }
 
         // 2. Validate announcement content
-        if (
-            typeof content !== "string" ||
-            !content.trim() ||
-            content.trim().length > 10000
-        ) {
+        if ( typeof content !== "string" || !content.trim() || content.trim().length > 10000) {
             throw new AppError(
                 "Announcement content is required and must not exceed 10000 characters",
                 400
@@ -99,10 +93,7 @@ router.post(
 // GET ALL ANNOUNCEMENTS FOR A CLASSROOM
 // GET /api/announcements/course/:courseId
 
-router.get(
-    "/course/:courseId",
-    authMiddleware,
-    asyncHandler(async (req, res) => {
+router.get( "/course/:courseId",  authMiddleware, asyncHandler(async (req, res) => {
         const { courseId } = req.params;
 
         if (!mongoose.isValidObjectId(courseId)) {
@@ -132,15 +123,10 @@ router.get(
         });
 
         if (!isOwner && !isCoTeacher && !enrollment) {
-            throw new AppError(
-                "You do not have permission to view announcements for this classroom",
-                403
-            );
+            throw new AppError( "You do not have permission to view announcements for this classroom", 403);
         }
 
-        const announcements = await Announcement.find({
-            course: courseId,
-        })
+        const announcements = await Announcement.find({ course: courseId,})
             .populate("author", "name email")
             .sort({ createdAt: -1 });
 

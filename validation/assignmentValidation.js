@@ -74,8 +74,22 @@ const updateAssignmentSchema = Joi.object({
     .min(1)
     .unknown(false);
 
+// Validate course ID in route parameters
+const courseParamsSchema = Joi.object({
+    courseId: objectId.required()
+});
+
+// Validate course ID and assignment ID
+const assignmentParamsSchema = Joi.object({
+    courseId: objectId.required(),
+    assignmentId: objectId.required()
+});
+
+
 module.exports = {
     objectId,
     createAssignmentSchema,
     updateAssignmentSchema,
+    courseParamsSchema,
+    assignmentParamsSchema
 };
