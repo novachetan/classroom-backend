@@ -1,6 +1,11 @@
 
 const express = require("express");
-const {createCourseSchema, courseIdParamsSchema, courseAndTeacherParamsSchema,  }= require("../validation/courseValidation")
+const {
+    createCourseSchema,
+    updateCourseSchema,
+    courseIdParamsSchema,
+    courseAndTeacherParamsSchema
+} = require("../validation/courseValidation");
 const { authMiddleware } = require("../middleware/authMiddleware");
 const validate = require("../middleware/validate");
 const Course =  require("../controllers/courseCo")
@@ -34,8 +39,13 @@ router.get( "/:courseId", authMiddleware, validate(courseIdParamsSchema, "params
 // UPDATE COURSE
 // PATCH /api/courses/:courseId
 
-router.patch(  "/:courseId",  authMiddleware,  validate(courseIdParamsSchema, "params"),   Course.coursePatch);
-
+router.patch(
+    "/:courseId",
+    authMiddleware,
+    validate(courseIdParamsSchema, "params"),
+    validate(updateCourseSchema, "body"),
+    Course.coursePatch
+);
 
 
 // ======================================================
@@ -44,7 +54,7 @@ router.patch(  "/:courseId",  authMiddleware,  validate(courseIdParamsSchema, "p
 // ======================================================
 
 router.post( "/:courseId/teachers", authMiddleware, validate(courseIdParamsSchema, "params"), 
-Course.courseGetCoTeachers 
+Course.addCoTeacher 
 );
 
 
