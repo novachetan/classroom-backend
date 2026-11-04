@@ -20,16 +20,7 @@ const Assignment = require("../controllers/assignmentCo");
 const router = express.Router();
 
 
-// CREATE ASSIGNMENT
-router.post(
-    "/course/:courseId/assignment",
-    authMiddleware,
-    authorizeCourseRole("teacher"),
-    receiveAssignmentFile,
-    validate(createAssignmentSchema, "body"),
-    uploadAssignmentToCloudinary,
-    Assignment.assignmentpost
-);
+
 
 // CREATE ASSIGNMENT
 router.post(
